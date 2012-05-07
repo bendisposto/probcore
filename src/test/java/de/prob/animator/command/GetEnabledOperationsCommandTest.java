@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.Test;
 
 import de.prob.ProBException;
+import de.prob.animator.domainobjects.OpInfo;
 import de.prob.parser.ISimplifiedROMap;
 import de.prob.prolog.output.StructuredPrologOutput;
 import de.prob.prolog.term.CompoundPrologTerm;
@@ -50,8 +51,9 @@ public class GetEnabledOperationsCommandTest {
 						new IntegerPrologTerm(24),
 						new CompoundPrologTerm("foo"), new CompoundPrologTerm(
 								"root"), new IntegerPrologTerm(27),
-						new CompoundPrologTerm("sproing"),
-						new CompoundPrologTerm("ding"))));
+						new CompoundPrologTerm("sproing"), new ListPrologTerm(
+								new CompoundPrologTerm("ding")),
+						new CompoundPrologTerm("dummy"))));
 
 		GetEnabledOperationsCommand command = new GetEnabledOperationsCommand(
 				"state");
@@ -63,7 +65,7 @@ public class GetEnabledOperationsCommandTest {
 		assertEquals("foo", io.name);
 		assertEquals("root", io.src);
 		assertEquals("27", io.dest);
-		assertEquals("ding", io.params);
+		assertTrue(io.params.contains("ding"));
 
 	}
 
@@ -77,8 +79,9 @@ public class GetEnabledOperationsCommandTest {
 						new IntegerPrologTerm(24),
 						new CompoundPrologTerm("foo"),
 						new IntegerPrologTerm(50), new IntegerPrologTerm(27),
-						new CompoundPrologTerm("sproing"),
-						new CompoundPrologTerm("ding"))));
+						new CompoundPrologTerm("sproing"), new ListPrologTerm(
+								new CompoundPrologTerm("ding")),
+						new CompoundPrologTerm("dummy"))));
 
 		GetEnabledOperationsCommand command = new GetEnabledOperationsCommand(
 				"state");
@@ -90,8 +93,7 @@ public class GetEnabledOperationsCommandTest {
 		assertEquals("foo", io.name);
 		assertEquals("50", io.src);
 		assertEquals("27", io.dest);
-		assertEquals("ding", io.params);
+		assertTrue(io.params.contains("ding"));
 
 	}
-
 }

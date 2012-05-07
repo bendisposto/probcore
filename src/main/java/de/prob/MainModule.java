@@ -11,6 +11,7 @@ import jline.ConsoleReader;
 
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
@@ -20,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
 
@@ -29,11 +29,14 @@ import de.prob.annotations.Home;
 import de.prob.annotations.Logfile;
 import de.prob.annotations.Version;
 import de.prob.cli.ModuleCli;
-import de.prob.model.ModelModule;
 import de.prob.scripting.Api;
+import de.prob.scripting.Downloader;
+import de.prob.statespace.ModelModule;
 
 public class MainModule extends AbstractModule {
 
+	private static final String DEFAULT_HOME = System.getProperty("user.home")
+			+ separator + ".prob" + separator;
 	private static final Logger logger = LoggerFactory
 			.getLogger(MainModule.class);
 	private final Properties buildConstants;
@@ -48,19 +51,21 @@ public class MainModule extends AbstractModule {
 		install(new AnimatorModule());
 		install(new ModelModule());
 		bind(Api.class);
-		bind(CommandLineParser.class).to(PosixParser.class).in(Singleton.class);
+		bind(CommandLineParser.class).to(PosixParser.class);
+
 		bind(String.class).annotatedWith(Version.class).toInstance(
 				buildConstants.getProperty("version", "0.0.0"));
 		bind(ConsoleReader.class);
 		bind(ClassLoader.class).annotatedWith(Names.named("Classloader"))
 				.toInstance(Main.class.getClassLoader());
+		bind(Downloader.class);
 	}
 
 	@Provides
 	@Home
 	public String getProBDirectory() {
-		return System.getProperty("user.home") + separator + ".prob"
-				+ separator;
+		String homedir = System.getProperty("PROB_HOME");
+		return homedir != null ? homedir : DEFAULT_HOME;
 	}
 
 	@Provides
@@ -80,13 +85,23 @@ public class MainModule extends AbstractModule {
 	public Options getCommandlineOptions() {
 		Options options = new Options();
 		Option shell = new Option("s", "shell", false,
-				"start ProB-Python shell");
-		Option modelcheck = new Option("mc", "modelcheck", false,
-				"start ProB model checking");
+				"start ProB's Groovy shell");
+
+		@SuppressWarnings("static-access")
+		Option test = OptionBuilder
+				.withArgName("script/dir")
+				.hasArg()
+				.withDescription(
+						"run a Groovy test script or all .groovy files from a directory")
+				.create("test");
+
+		// Option modelcheck = new Option("mc", "modelcheck", false,
+		// "start ProB model checking");
 		OptionGroup mode = new OptionGroup();
 		mode.setRequired(true);
-		mode.addOption(modelcheck);
+		// mode.addOption(modelcheck);
 		mode.addOption(shell);
+		mode.addOption(test);
 		options.addOptionGroup(mode);
 		return options;
 	}

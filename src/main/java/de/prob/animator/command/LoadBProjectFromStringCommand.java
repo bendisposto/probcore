@@ -19,6 +19,12 @@ import de.prob.prolog.term.CompoundPrologTerm;
 import de.prob.prolog.term.ListPrologTerm;
 import de.prob.prolog.term.PrologTerm;
 
+/**
+ * Loads a Classical B Machine from a string
+ * 
+ * @author joy
+ * 
+ */
 public class LoadBProjectFromStringCommand implements ICommand {
 
 	private final String model;
@@ -55,7 +61,7 @@ public class LoadBProjectFromStringCommand implements ICommand {
 
 		BParser bparser = new BParser();
 		Start ast = parseString(model, bparser);
-		final RecursiveMachineLoader rml = new RecursiveMachineLoader(".");
+		final RecursiveMachineLoader rml = new RecursiveMachineLoader(".",bparser.getContentProvider());
 		try {
 			rml.loadAllMachines(new File(""), ast, null,
 					bparser.getDefinitions(), bparser.getPragmas());

@@ -3,28 +3,32 @@ package de.prob.scripting;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.inject.Inject;
 
 import de.prob.ProBException;
 import de.prob.animator.command.notImplemented.EvaluateCommand;
-import de.prob.animator.command.notImplemented.GetOperationNamesCommand;
 import de.prob.cli.ProBInstance;
-import de.prob.model.StateSpace;
-import de.prob.model.representation.ClassicalBMachine;
-import de.prob.model.representation.Operation;
+import de.prob.model.classicalb.ClassicalBFactory;
+import de.prob.model.classicalb.ClassicalBModel;
+import de.prob.statespace.StateSpace;
 
 public class Api {
 
+	Logger logger = LoggerFactory.getLogger(Api.class);
+
 	private final FactoryProvider modelFactoryProvider;
+	private final Downloader downloader;
 
 	@Inject
-	public Api(final FactoryProvider modelFactoryProvider) {
+	public Api(final FactoryProvider modelFactoryProvider,
+			final Downloader downloader) {
 		this.modelFactoryProvider = modelFactoryProvider;
+		this.downloader = downloader;
 	}
-
-	// private static final Logger logger = LoggerFactory.getLogger(Api.class);
 
 	public void raise() {
 		// logger.error("Fataaaaal!");
@@ -35,7 +39,7 @@ public class Api {
 		x.shutdown();
 	}
 
-	public ClassicalBMachine b_def() throws ProBException {
+	public ClassicalBModel b_def() {
 		ClassLoader classLoader = getClass().getClassLoader();
 		URL resource = classLoader.getResource("examples/scheduler.mch");
 		File f = null;
@@ -47,59 +51,36 @@ public class Api {
 		ClassicalBFactory bFactory = modelFactoryProvider
 				.getClassicalBFactory();
 
-		return bFactory.load(f);
+		try {
+			ClassicalBModel machine = bFactory.load(f);
+			return machine;
+		} catch (ProBException e) {
+			return null;
+		}
 	}
 
-	public ClassicalBMachine b_load(final String file) throws ProBException {
+	public StateSpace s() throws ProBException {
+		final ClassicalBModel b = b_def();
+		return (b != null) ? b.getStatespace() : null;
+	}
+
+	/**
+	 * Takes path of a Classical B Machine and loads it into the ClassicalBModel
+	 * 
+	 * @param file
+	 * @return
+	 */
+	public ClassicalBModel b_load(final String file) {
 		File f = new File(file);
 		ClassicalBFactory bFactory = modelFactoryProvider
 				.getClassicalBFactory();
-		return bFactory.load(f);
+		try {
+			return bFactory.load(f);
+		} catch (ProBException e) {
+			return null;
+		}
 	}
 
-	public List<Operation> testX(final StateSpace s) throws ProBException {
-		GetOperationNamesCommand command = new GetOperationNamesCommand();
-		s.execute(command);
-		return command.getOperations();
-	}
-
-	public String eval(final String text, final StateSpace s)
-			throws ProBException {
-		EvaluateCommand command = new EvaluateCommand(text);
-		s.execute(command);
-		return command.getResult();
-	}
-
-	// public IStateSpace b_def() {
-	// File f = null;
-	// try {
-	//
-	// ClassLoader classLoader = getClass().getClassLoader();
-	// System.out.println(classLoader);
-	//
-	// URL resource = classLoader.getResource("examples/scheduler.mch");
-	//
-	// System.out.println(resource);
-	//
-	// f = new File(resource.toURI());
-	// System.out.println(f);
-	// } catch (URISyntaxException e) {
-	// e.printStackTrace();
-	// }
-	// return open_file(f);
-	// }
-	//
-	// public IStateSpace open_file(final File f) {
-	// StateSpace stateSpace = animationProvider.get();
-	// stateSpace.load(f);
-	// return stateSpace;
-	// }
-	//
-	// public IStateSpace load_b(final String dir, final String name,
-	// final String ext) {
-	// File f = new File(dir + File.separator + name + "." + ext);
-	// return open_file(f);
-	// }
 
 	public String getCurrentId(final StateSpace animation) throws ProBException {
 		// new ICom<GetCurrentStateIdCommand>(new GetCurrentStateIdCommand())
@@ -107,4 +88,29 @@ public class Api {
 		return null;
 	}
 
+	/**
+	 * Upgrades the ProB Cli to the given target version
+	 * 
+	 * @param targetVersion
+	 * @return
+	 */
+	public String upgrade(final String targetVersion) {
+		try {
+			return downloader.downloadCli(targetVersion);
+		} catch (ProBException e) {
+			logger.error(
+					"Could not download files for the given operating system",
+					e);
+		}
+		return "--Upgrade Failed--";
+	}
+
+	/**
+	 * Lists the versions of ProB Cli that are available for download
+	 * 
+	 * @return
+	 */
+	public String listVersions() {
+		return downloader.listVersions();
+	}
 }

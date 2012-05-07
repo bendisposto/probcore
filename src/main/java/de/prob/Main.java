@@ -2,6 +2,8 @@ package de.prob;
 
 import static java.io.File.*;
 
+import java.io.File;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -15,6 +17,7 @@ import com.google.inject.Injector;
 
 import de.prob.animator.IAnimator;
 import de.prob.annotations.Logfile;
+import de.prob.cli.ProBInstanceProvider;
 
 public class Main {
 
@@ -39,7 +42,7 @@ public class Main {
 
 	private final CommandLineParser parser;
 	private final Options options;
-	private Shell shell;
+	private final Shell shell;
 
 	@Inject
 	public Main(@Logfile final String logfile, final CommandLineParser parser,
@@ -51,15 +54,23 @@ public class Main {
 	}
 
 	void run(final String[] args) {
+		getAnimator();
+		if (ProBInstanceProvider.getClis().isEmpty())
+			System.out
+					.println("No cli detected. Try \"upgrade\" to download the current version.");
 
 		try {
 			CommandLine line = parser.parse(options, args);
 			if (line.hasOption("shell")) {
 				shell.repl();
 			}
+			if (line.hasOption("test")) {
+				String value = line.getOptionValue("test");
+				shell.runScript(new File(value));
+			}
 		} catch (ParseException exp) {
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("java -jar probcli-deploy.jar", options);
+			formatter.printHelp("java -jar probcli.jar", options);
 		}
 	}
 
@@ -70,7 +81,7 @@ public class Main {
 		// IStateSpace instance = injector.getInstance(IStateSpace.class);
 
 		main.run(args);
-		// System.exit(0);
+		System.exit(0);
 	}
 
 }

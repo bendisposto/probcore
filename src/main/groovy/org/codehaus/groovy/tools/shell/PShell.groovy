@@ -26,6 +26,9 @@ import org.codehaus.groovy.tools.shell.util.XmlCommandRegistrar
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 
+import de.prob.scripting.Api
+
+
 /**
  * An interactive shell for evaluating Groovy code from the command-line (aka. groovysh).
  *
@@ -63,9 +66,11 @@ extends Shell {
 	boolean historyFull  // used as a workaround for GROOVY-2177
 	String evictedLine  // remembers the command which will get evicted if history is full
 
+	private final Binding binding;
 	PShell(final ClassLoader classLoader, final Binding binding, final IO io, final Closure registrar, String version) {
 		super(io)
 
+		this.binding =  binding;
 		assert classLoader
 		assert binding
 		assert registrar
@@ -86,10 +91,8 @@ extends Shell {
 		}, version)
 	}
 
-
-	//
-	// Execution
-	//
+	Api getApi() {
+		return binding.getVariable("api"); }
 
 	/**
 	 * Execute a single line, where the line may be a command or Groovy code (complete or incomplete).
@@ -206,6 +209,7 @@ extends Shell {
 		def dir = new File(userHome, '.groovy')
 		return dir.canonicalFile
 	}
+
 
 	private void loadUserScript(final String filename) {
 		assert filename
@@ -391,6 +395,8 @@ extends Shell {
 		try {
 			loadUserScript('groovysh.profile')
 
+
+
 			// if args were passed in, just execute as a command
 			// (but cygwin gives an empty string, so ignore that)
 			if (commandLine != null && commandLine.trim().size() > 0) {
@@ -431,6 +437,8 @@ extends Shell {
 
 				// And let 'er rip... :-)
 				runner.run()
+
+
 			}
 
 			code = 0
@@ -450,5 +458,14 @@ extends Shell {
 		assert code != null // This should never happen
 
 		return code
+	}
+
+	//can be used to define new variables that are recognized throughout the whole shell
+	void add(String s) {
+		this << s
+	}
+
+	void addVariable(String name, Object obj) {
+		binding.setVariable(name, obj);
 	}
 }

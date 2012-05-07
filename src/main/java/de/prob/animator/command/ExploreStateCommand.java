@@ -17,10 +17,20 @@ import org.slf4j.LoggerFactory;
 
 import de.prob.ProBException;
 import de.prob.animator.command.internal.CheckBooleanPropertyCommand;
+import de.prob.animator.domainobjects.OpInfo;
+import de.prob.animator.domainobjects.StateError;
 import de.prob.parser.ISimplifiedROMap;
 import de.prob.prolog.output.IPrologTermOutput;
 import de.prob.prolog.term.PrologTerm;
 
+/**
+ * Calculates the enabled operations, the state values, the initialization, the
+ * invariant, the timeout, the operations with timeout, and the errors for a
+ * given state.
+ * 
+ * @author joy
+ * 
+ */
 public final class ExploreStateCommand implements ICommand {
 
 	Logger logger = LoggerFactory.getLogger(ExploreStateCommand.class);
