@@ -16,6 +16,10 @@
 
 package org.codehaus.groovy.tools.shell
 
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+
 import jline.History
 import jline.Terminal
 
@@ -26,6 +30,7 @@ import org.codehaus.groovy.tools.shell.util.XmlCommandRegistrar
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 
+import de.prob.cli.ProBInstanceProvider
 import de.prob.scripting.Api
 
 
@@ -59,7 +64,7 @@ extends Shell {
 
 	final version
 
-	InteractiveShellRunner runner
+	PInteractiveShellRunner runner
 
 	History history
 
@@ -142,7 +147,41 @@ extends Shell {
 			// Evaluate the current buffer w/imports and dummy statement
 				def buff = imports + ['true']+ current
 
-				lastResult = result = interp.evaluate(buff)
+
+
+				def ex = Executors.newSingleThreadExecutor();
+
+				Future<Object> r = ex.submit(new Callable<Object>() {
+							public Object call() {
+								return interp.evaluate(buff);
+							}});
+
+			//				lastResult = result = interp.evaluate(buff)
+
+				while (!r.isDone()) {
+					def c = System.in.available()
+					if (c >0) {
+						def a = System.in.read()
+						if( a == 97 ) {
+							def b = System.in.read()
+							if( b == 10 ) {
+								r.cancel(true)
+								ProBInstanceProvider.getClis().each {
+									if (it.get() != null) it.get().sendInterrupt()
+								}
+								ex.shutdown();
+							} else {
+								print(Character.toChars(b))
+							}
+						} else {
+							print(Character.toChars(a))
+						}
+
+					}
+				}
+
+				lastResult = result = (r.isCancelled() ? "CANCELED" : r.get());
+
 				buffers.clearSelected()
 				break
 
@@ -351,7 +390,13 @@ extends Shell {
 		}
 	}
 
-	Closure errorHook = defaultErrorHook
+	Closure newErrorHook = { Throwable cause ->
+		//		if(!(cause instanceof ProBException))
+		defaultErrorHook.call(cause)
+	}
+
+	//Closure errorHook = defaultErrorHook
+	Closure errorHook = newErrorHook
 
 	private void displayError(final Throwable cause) {
 		if (errorHook == null) {
@@ -407,7 +452,7 @@ extends Shell {
 				loadUserScript('groovysh.rc')
 
 				// Setup the interactive runner
-				runner = new InteractiveShellRunner(this, this.&renderPrompt as Closure)
+				runner = new PInteractiveShellRunner(this, this.&renderPrompt as Closure)
 
 				// Setup the history
 				runner.history = history = new History()

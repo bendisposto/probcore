@@ -22,9 +22,7 @@ public class GetPrintableAtomsList implements ICommand {
 	 * Executes the query: prologPredicate(L). Expects L to be a list of
 	 * printable atoms
 	 * 
-	 * @param animator
-	 * @param prologPredicate
-	 * @return
+	 * @return a list of printable atoms
 	 * @throws ProBException
 	 */
 
@@ -36,12 +34,14 @@ public class GetPrintableAtomsList implements ICommand {
 		this.prologPredicate = prologPredicate;
 	}
 
+	@Override
 	public void processResult(
 			final ISimplifiedROMap<String, PrologTerm> bindings) {
 		list = PrologTerm.atomicStrings((ListPrologTerm) bindings
 				.get(PROLOG_VARIABLE));
 	}
 
+	@Override
 	public void writeCommand(final IPrologTermOutput pto) {
 		pto.openTerm(prologPredicate);
 		pto.printVariable(PROLOG_VARIABLE);

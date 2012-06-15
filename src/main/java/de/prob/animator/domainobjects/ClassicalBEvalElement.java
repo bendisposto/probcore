@@ -6,50 +6,48 @@
 
 package de.prob.animator.domainobjects;
 
+import static de.prob.animator.domainobjects.EvalElementType.*;
 import de.be4.classicalb.core.parser.BParser;
+import de.be4.classicalb.core.parser.analysis.prolog.ASTProlog;
 import de.be4.classicalb.core.parser.exceptions.BException;
+import de.be4.classicalb.core.parser.node.AExpressionParseUnit;
 import de.be4.classicalb.core.parser.node.Start;
+import de.prob.prolog.output.IPrologTermOutput;
 
-public class ClassicalBEvalElement {
+public class ClassicalBEvalElement implements IEvalElement {
 
 	private final String code;
-	private EvalElementType type;
+	private final Start ast;
 
-	public ClassicalBEvalElement(final String code, final EvalElementType type) {
+	public ClassicalBEvalElement(final String code) throws BException {
 		this.code = code;
-		this.type = type;
+		this.ast = BParser.parse(BParser.FORMULA_PREFIX + " " + code);
 	}
 
-	public ClassicalBEvalElement(final String code) {
-		this.code = code;
-		this.type = null;
+	@Override
+	public String getType() {
+		return ast.getPParseUnit() instanceof AExpressionParseUnit ? EXPRESSION
+				.toString() : PREDICATE.toString();
 	}
 
-	public Start parse() throws BException {
-		if (type != null)
-			return tryparse(type);
-		try {
-			Start res = tryparse(EvalElementType.EXPRESSION);
-			type = EvalElementType.EXPRESSION;
-			return res;
-		} catch (BException e) {
-			Start res = tryparse(EvalElementType.PREDICATE);
-			type = EvalElementType.PREDICATE;
-			return res;
-		}
-	}
-
-	public Start tryparse(final EvalElementType type) throws BException {
-		final BParser parser = new BParser();
-		final Start modelAst = parser.parse(type + " " + code, false);
-		return modelAst;
-	}
-
-	public EvalElementType getType() {
-		return type;
-	}
-
+	@Override
 	public String getCode() {
 		return code;
 	}
+
+	public Start getAst() {
+		return ast;
+	}
+
+	@Override
+	public String toString() {
+		return code;
+	}
+
+	@Override
+	public void printProlog(final IPrologTermOutput pout) {
+		final ASTProlog prolog = new ASTProlog(pout, null);
+		getAst().apply(prolog);
+	}
+
 }

@@ -13,13 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.be4.classicalb.core.parser.analysis.prolog.ASTProlog;
-import de.be4.classicalb.core.parser.exceptions.BException;
-import de.prob.ProBException;
 import de.prob.animator.domainobjects.ClassicalBEvalElement;
 import de.prob.animator.domainobjects.OpInfo;
 import de.prob.parser.BindingGenerator;
 import de.prob.parser.ISimplifiedROMap;
-import de.prob.parser.ResultParserException;
 import de.prob.prolog.output.IPrologTermOutput;
 import de.prob.prolog.term.CompoundPrologTerm;
 import de.prob.prolog.term.ListPrologTerm;
@@ -27,7 +24,7 @@ import de.prob.prolog.term.PrologTerm;
 
 /**
  * Command to execute an event that has not been enumerated by ProB, for further
- * information see ({@link #getOperation})
+ * information see ({@link #getOperations})
  * 
  * @author Jens Bendisposto
  * 
@@ -44,11 +41,12 @@ public final class GetOperationByPredicateCommand implements ICommand {
 	private final int nrOfSolutions;
 
 	public GetOperationByPredicateCommand(final String stateId,
-			final String name, final String predicate, final int nrOfSolutions) {
+			final String name, final ClassicalBEvalElement predicate,
+			final int nrOfSolutions) {
 		this.stateId = stateId;
 		this.name = name;
 		this.nrOfSolutions = nrOfSolutions;
-		this.evalElement = new ClassicalBEvalElement(predicate);
+		this.evalElement = predicate;
 	}
 
 	/**
@@ -58,23 +56,17 @@ public final class GetOperationByPredicateCommand implements ICommand {
 	 * 
 	 * @throws ProBException
 	 * 
-	 * @see de.prob.core.command.IComposableCommand#writeCommand(de.prob.prolog.output.IPrologTermOutput)
+	 * @see de.prob.animator.command.ICommand#writeCommand(de.prob.prolog.output.IPrologTermOutput)
 	 */
 	@Override
-	public void writeCommand(final IPrologTermOutput pto) throws ProBException {
+	public void writeCommand(final IPrologTermOutput pto) {
 		pto.openTerm("execute_custom_operations").printAtomOrNumber(stateId)
 				.printAtom(name);
-		try {
-			final ASTProlog prolog = new ASTProlog(pto, null);
-			evalElement.parse().apply(prolog);
-		} catch (BException e) {
-			logger.error("Parse error", e);
-			throw new ProBException();
-		} finally {
-			pto.printNumber(nrOfSolutions);
-			pto.printVariable(NEW_STATE_ID_VARIABLE);
-			pto.printVariable("Errors").closeTerm();
-		}
+		final ASTProlog prolog = new ASTProlog(pto, null);
+		evalElement.getAst().apply(prolog);
+		pto.printNumber(nrOfSolutions);
+		pto.printVariable(NEW_STATE_ID_VARIABLE);
+		pto.printVariable("Errors").closeTerm();
 	}
 
 	/**
@@ -82,32 +74,28 @@ public final class GetOperationByPredicateCommand implements ICommand {
 	 * The method is called by the Animator class, most likely it is not
 	 * interesting for other classes.
 	 * 
-	 * @throws ProBException
 	 * 
-	 * @see de.prob.core.command.IComposableCommand#writeCommand(de.prob.prolog.output.IPrologTermOutput)
+	 * 
+	 * @see de.prob.animator.command.ICommand#writeCommand(de.prob.prolog.output.IPrologTermOutput)
 	 */
 	@Override
 	public void processResult(
 			final ISimplifiedROMap<String, PrologTerm> bindings)
-			throws ProBException {
+			 {
 
 		operation.clear();
 
-		try {
-			ListPrologTerm list = BindingGenerator.getList(bindings
-					.get(NEW_STATE_ID_VARIABLE));
+		ListPrologTerm list = BindingGenerator.getList(bindings
+				.get(NEW_STATE_ID_VARIABLE));
 
-			if (!list.isEmpty()) {
-				for (PrologTerm prologTerm : list) {
-					CompoundPrologTerm cpt = BindingGenerator.getCompoundTerm(
-							prologTerm, 6);
-					operation.add(new OpInfo(cpt));
-				}
+		if (!list.isEmpty()) {
+			for (PrologTerm prologTerm : list) {
+				CompoundPrologTerm cpt = BindingGenerator.getCompoundTerm(
+						prologTerm, 6);
+				operation.add(new OpInfo(cpt));
 			}
-		} catch (ResultParserException e) {
-			logger.error("Result from Prolog was not as expected.", e);
-			throw new ProBException();
 		}
+
 	}
 
 	public List<OpInfo> getOperations() {

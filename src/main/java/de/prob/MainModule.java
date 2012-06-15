@@ -35,8 +35,6 @@ import de.prob.statespace.ModelModule;
 
 public class MainModule extends AbstractModule {
 
-	private static final String DEFAULT_HOME = System.getProperty("user.home")
-			+ separator + ".prob" + separator;
 	private static final Logger logger = LoggerFactory
 			.getLogger(MainModule.class);
 	private final Properties buildConstants;
@@ -64,8 +62,7 @@ public class MainModule extends AbstractModule {
 	@Provides
 	@Home
 	public String getProBDirectory() {
-		String homedir = System.getProperty("PROB_HOME");
-		return homedir != null ? homedir : DEFAULT_HOME;
+		return Main.getProBDirectory();
 	}
 
 	@Provides
@@ -78,7 +75,9 @@ public class MainModule extends AbstractModule {
 	@Provides
 	@Logfile
 	public String getProBLogfile() {
-		return getProBDirectory() + "logs" + separator + "ProB.txt";
+		String str = getProBDirectory() + "logs" + separator + "ProB.txt";
+		System.setProperty("PROB_LOGFILE", str);
+		return str;
 	}
 
 	@Provides
@@ -107,7 +106,8 @@ public class MainModule extends AbstractModule {
 	}
 
 	private Properties loadBuildConstants() {
-		InputStream stream = MainModule.class.getClassLoader()
+		ClassLoader classLoader = MainModule.class.getClassLoader();
+		InputStream stream = classLoader
 				.getResourceAsStream("build.properties");
 		Properties properties = new Properties();
 		try {

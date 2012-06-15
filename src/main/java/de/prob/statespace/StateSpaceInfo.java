@@ -5,21 +5,29 @@ import java.util.Set;
 
 import de.prob.animator.command.ExploreStateCommand;
 
+/**
+ * Contains the information about the StateSpace. This includes the Operations
+ * for a given OperationId and the variables, invariant, timeouts, and
+ * operations with timeout for a given StateId.
+ * 
+ * @author joy
+ * 
+ */
 public class StateSpaceInfo {
-	private final HashMap<String, Operation> ops = new HashMap<String, Operation>();
-	private final HashMap<String, HashMap<String, String>> variables = new HashMap<String, HashMap<String, String>>();
-	private final HashMap<String, Boolean> invariantOk = new HashMap<String, Boolean>();
-	private final HashMap<String, Boolean> timeoutOccured = new HashMap<String, Boolean>();
-	private final HashMap<String, Set<String>> operationsWithTimeout = new HashMap<String, Set<String>>();
+	private final HashMap<OperationId, Operation> ops = new HashMap<OperationId, Operation>();
+	private final HashMap<StateId, HashMap<String, String>> variables = new HashMap<StateId, HashMap<String, String>>();
+	private final HashMap<StateId, Boolean> invariantOk = new HashMap<StateId, Boolean>();
+	private final HashMap<StateId, Boolean> timeoutOccured = new HashMap<StateId, Boolean>();
+	private final HashMap<StateId, Set<String>> operationsWithTimeout = new HashMap<StateId, Set<String>>();
 
 	/**
-	 * Records an Operation (op) that corresponding to the given state id.
+	 * Records an Operation (op) that corresponding to the given operation id.
 	 * 
 	 * @param id
 	 * @param op
 	 */
-	public void add(String id, Operation op) {
-		ops.put(id, op);
+	public void add(final String id, final Operation op) {
+		ops.put(new OperationId(id), op);
 	}
 
 	/**
@@ -28,8 +36,8 @@ public class StateSpaceInfo {
 	 * @param id
 	 * @param vars
 	 */
-	public void add(String id, HashMap<String, String> vars) {
-		variables.put(id, vars);
+	public void add(final String id, final HashMap<String, String> vars) {
+		variables.put(new StateId(id), vars);
 	}
 
 	/**
@@ -38,8 +46,8 @@ public class StateSpaceInfo {
 	 * @param id
 	 * @param invOK
 	 */
-	public void addInvOk(String id, Boolean invOK) {
-		invariantOk.put(id, invOK);
+	public void addInvOk(final String id, final Boolean invOK) {
+		invariantOk.put(new StateId(id), invOK);
 	}
 
 	/**
@@ -48,9 +56,9 @@ public class StateSpaceInfo {
 	 * @param id
 	 * @param tOccured
 	 */
-	public void addTimeOcc(String id, Boolean tOccured) {
+	public void addTimeOcc(final String id, final Boolean tOccured) {
 		// FIXME is this id a state id or an operation id
-		timeoutOccured.put(id, tOccured);
+		timeoutOccured.put(new StateId(id), tOccured);
 	}
 
 	/**
@@ -60,8 +68,8 @@ public class StateSpaceInfo {
 	 * @param id
 	 * @param opsWT
 	 */
-	public void add(String id, Set<String> opsWT) {
-		operationsWithTimeout.put(id, opsWT);
+	public void add(final String id, final Set<String> opsWT) {
+		operationsWithTimeout.put(new StateId(id), opsWT);
 	}
 
 	/**
@@ -71,22 +79,23 @@ public class StateSpaceInfo {
 	 * @param stateId
 	 * @param command
 	 */
-	public void add(String stateId, ExploreStateCommand command) {
-		variables.put(stateId, command.getVariables());
-		invariantOk.put(stateId, command.isInvariantOk());
-		timeoutOccured.put(stateId, command.isTimeoutOccured());
-		operationsWithTimeout.put(stateId, command.getOperationsWithTimeout());
+	public void add(final String stateId, final ExploreStateCommand command) {
+		variables.put(new StateId(stateId), command.getVariables());
+		invariantOk.put(new StateId(stateId), command.isInvariantOk());
+		timeoutOccured.put(new StateId(stateId), command.isTimeoutOccured());
+		operationsWithTimeout.put(new StateId(stateId),
+				command.getOperationsWithTimeout());
 	}
 
-	public HashMap<String, Boolean> getInvariantOk() {
+	public HashMap<StateId, Boolean> getInvariantOk() {
 		return invariantOk;
 	}
 
-	public HashMap<String, Boolean> getTimeoutOccured() {
+	public HashMap<StateId, Boolean> getTimeoutOccured() {
 		return timeoutOccured;
 	}
 
-	public HashMap<String, Set<String>> getOperationsWithTimeout() {
+	public HashMap<StateId, Set<String>> getOperationsWithTimeout() {
 		return operationsWithTimeout;
 	}
 
@@ -94,10 +103,10 @@ public class StateSpaceInfo {
 	 * Returns the map representation of the variables for the given state id
 	 * 
 	 * @param stateId
-	 * @return
+	 * @return returns the variables at the given state
 	 */
 	public HashMap<String, String> getState(final String stateId) {
-		return variables.get(stateId);
+		return variables.get(new StateId(stateId));
 	}
 
 	public HashMap<String, String> getState(final int stateId) {
@@ -105,11 +114,52 @@ public class StateSpaceInfo {
 		return getState(id);
 	}
 
-	public HashMap<String, Operation> getOps() {
+	/**
+	 * The value of the variable at the given state is found and returned.
+	 * 
+	 * @param stateId
+	 * @param variable
+	 * @return gets the value of the variable for the given state
+	 */
+	public String getVariable(final String stateId, final String variable) {
+		return variables.get(new StateId(stateId)).get(variable);
+	}
+
+	/**
+	 * Returns if the given state has a specified variable
+	 * 
+	 * @param stateId
+	 * @param variable
+	 * @return if the given state has a variable with name variable
+	 */
+	public boolean stateHasVariable(final String stateId, final String variable) {
+		return getState(stateId).containsKey(variable);
+	}
+
+	public HashMap<OperationId, Operation> getOps() {
 		return ops;
 	}
 
+	/**
+	 * Returns the operation string operation Id corresponding to the
+	 * OperationId stored in the ops map
+	 * 
+	 * @param opId
+	 *            (String)
+	 * @return operation for the given operation id
+	 */
 	public Operation getOp(final String opId) {
+		return getOp(new OperationId(opId));
+	}
+
+	/**
+	 * Returns the operation for the given operation id
+	 * 
+	 * @param opId
+	 *            (OperationId)
+	 * @return operation for the given operation id
+	 */
+	public Operation getOp(final OperationId opId) {
 		return ops.get(opId);
 	}
 

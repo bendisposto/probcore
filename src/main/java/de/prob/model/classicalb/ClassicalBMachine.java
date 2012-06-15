@@ -92,7 +92,7 @@ public class ClassicalBMachine extends AbstractModel {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		if (obj instanceof ClassicalBMachine) {
 			ClassicalBMachine that = (ClassicalBMachine) obj;
 			return that.name.equals(name);
@@ -105,10 +105,50 @@ public class ClassicalBMachine extends AbstractModel {
 		return name.hashCode();
 	}
 
-	private List<ClassicalBEntity> lock(List<ClassicalBEntity> p) {
+	private List<ClassicalBEntity> lock(final List<ClassicalBEntity> p) {
 		if (locked)
 			return Collections.unmodifiableList(p);
 		return p;
 	}
 
+	public String print() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Sets:\n");
+		for (ClassicalBEntity set : sets) {
+			sb.append("  " + set.toString() + "\n");
+		}
+		sb.append("Parameters:\n");
+		for (ClassicalBEntity parameter : parameters) {
+			sb.append("  " + parameter.toString() + "\n");
+		}
+		sb.append("Constraints:\n");
+		for (ClassicalBEntity constraint : constraints) {
+			sb.append("  " + constraint.toString() + "\n");
+		}
+		sb.append("Constants:\n");
+		for (ClassicalBEntity constant : constants) {
+			sb.append("  " + constant.toString() + "\n");
+		}
+		sb.append("Properties:\n");
+		for (ClassicalBEntity property : properties) {
+			sb.append("  " + property.toString() + "\n");
+		}
+		sb.append("Variables:\n");
+		for (ClassicalBEntity variable : variables) {
+			sb.append("  " + variable.toString() + "\n");
+		}
+		sb.append("Invariant:\n");
+		for (ClassicalBEntity inv : invariant) {
+			sb.append("  " + inv.toString() + "\n");
+		}
+		sb.append("Assertions:\n");
+		for (ClassicalBEntity assertion : assertions) {
+			sb.append("  " + assertion.toString() + "\n");
+		}
+		sb.append("Operations:\n");
+		for (Operation operation : operations) {
+			sb.append("  " + operation.toString() + "\n");
+		}
+		return sb.toString();
+	}
 }

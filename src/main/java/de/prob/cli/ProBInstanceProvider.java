@@ -19,7 +19,8 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 
-import de.prob.ProBException;
+import de.prob.annotations.Home;
+import de.prob.exception.CliError;
 
 @Singleton
 public final class ProBInstanceProvider implements Provider<ProBInstance> {
@@ -29,30 +30,31 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 			.getLogger(ProBInstanceProvider.class);
 
 	private final PrologProcessProvider processProvider;
+	private final String home;
+	private final OsSpecificInfo osInfo;
 
 	@Override
 	public ProBInstance get() {
-		try {
-			return create();
-		} catch (ProBException e) {
-			return null;
-		}
+		return create();
 	}
 
 	@Inject
-	public ProBInstanceProvider(final PrologProcessProvider processProvider) {
+	public ProBInstanceProvider(final PrologProcessProvider processProvider,
+			@Home String home, OsSpecificInfo osInfo) {
 		this.processProvider = processProvider;
+		this.home = home;
+		this.osInfo = osInfo;
 	}
 
-	public ProBInstanceImpl create() throws ProBException {
-		ProBInstanceImpl cli = startProlog();
+	public ProBInstance create() {
+		ProBInstance cli = startProlog();
 		final WeakReference<ProBInstance> ref = new WeakReference<ProBInstance>(
 				cli);
 		refs.add(ref);
 		return cli;
 	}
 
-	private ProBInstanceImpl startProlog() throws ProBException {
+	private ProBInstance startProlog() {
 		ProcessHandle processTuple = processProvider.get();
 		Process process = processTuple.getProcess();
 		String key = processTuple.getKey();
@@ -68,13 +70,20 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 
 		ProBConnection connection = new ProBConnection(key, port);
 
-		ProBInstanceImpl cli = new ProBInstanceImpl(process, stream,
-				userInterruptReference, connection);
-		return cli;
+		try {
+			connection.connect();
+			ProBInstance cli = new ProBInstance(process, stream,
+					userInterruptReference, connection, home, osInfo);
+			return cli;
+		} catch (IOException e) {
+			logger.error("Error connecting to Prolog binary.", e);
+			return null;
+		}
+
 	}
 
 	Map<Class<? extends AbstractCliPattern<?>>, AbstractCliPattern<?>> extractCliInformation(
-			final BufferedReader input) throws ProBException {
+			final BufferedReader input) {
 		final PortPattern portPattern = new PortPattern();
 		final InterruptRefPattern intPattern = new InterruptRefPattern();
 
@@ -87,8 +96,7 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 	}
 
 	private void analyseStdout(final BufferedReader input,
-			Collection<? extends AbstractCliPattern<?>> patterns)
-			throws ProBException {
+			Collection<? extends AbstractCliPattern<?>> patterns) {
 		patterns = new ArrayList<AbstractCliPattern<?>>(patterns);
 		try {
 			String line;
@@ -103,12 +111,13 @@ public final class ProBInstanceProvider implements Provider<ProBInstance> {
 			final String message = "Problem while starting ProB. Cannot read from input stream.";
 			logger.error(message);
 			logger.debug(message, e);
-			throw new ProBException();
+			throw new CliError(message, e);
 		}
 		for (AbstractCliPattern<?> p : patterns) {
 			p.notifyNotFound();
 			if (p.notFoundIsFatal())
-				throw new ProBException();
+				throw new CliError("Missing info from CLI "
+						+ p.getClass().getSimpleName());
 		}
 	}
 
