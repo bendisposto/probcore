@@ -1,2 +1,0 @@
-MACHINE E
-	END

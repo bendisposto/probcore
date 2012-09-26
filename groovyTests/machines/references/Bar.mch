@@ -1,2 +1,0 @@
-MACHINE Bar
-	END
